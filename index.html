@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arena Whitelist Builder</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../../config.js?v=6"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+
+    .card {
+      background: linear-gradient(135deg, rgba(39,39,42,0.9) 0%, rgba(24,24,27,0.95) 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .hidden { display: none; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin { animation: spin 1s linear infinite; }
+
+    /* Toast notifications */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      font-size: 14px;
+    }
+
+    .toast-success { background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(22, 163, 74, 0.9)); }
+    .toast-error { background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.9)); }
+    .toast-info { background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9)); }
+    .toast-warning { background: linear-gradient(135deg, rgba(234, 179, 8, 0.9), rgba(202, 138, 4, 0.9)); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    .selected-list-item {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .holder-row:hover {
+      background: rgba(255,255,255,0.03);
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, #ef4444, #f97316);
+      transition: width 0.3s ease;
+    }
+
+    /* Tab Styles */
+    .tab-btn {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #a1a1aa;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .tab-btn.active {
+      color: #ef4444;
+      border-bottom-color: #ef4444;
+    }
+
+    .tab-content {
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .filter-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      border: 1px solid #3f3f46;
+      transition: all 0.2s ease;
+    }
+
+    .filter-btn:hover {
+      border-color: #ef4444;
+    }
+
+    .filter-btn.active {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .source-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .source-community { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+    .source-tickets { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+    .source-handle { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+    .source-manual { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- Header -->
+  <header class="border-b border-zinc-800/50 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <span class="text-xl font-bold tracking-wide">
+          <span class="text-red-500">Arena</span> Whitelist Builder
+        </span>
+        <nav class="hidden md:flex items-center gap-4 text-sm text-zinc-400">
+          <a href="../../index.html" class="hover:text-white transition">Home</a>
+          <a href="../admin/index.html" class="hover:text-white transition">Admin</a>
+          <a href="../payments/index.html" class="hover:text-white transition">Payments</a>
+          <a href="../presale/index.html" class="hover:text-white transition">Presale</a>
+          <a href="#" class="text-white">Whitelist</a>
+        </nav>
+      </div>
+      <div class="text-xs text-zinc-500 hidden lg:block">
+        Build whitelists from handles, wallets, communities & ticket holders
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Page Title -->
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-bold mb-3">Build Your Whitelist</h1>
+      <p class="text-zinc-500 text-sm max-w-xl mx-auto">
+        Add wallets by Arena handle, paste addresses directly, select community members, or fetch ticket holders. All duplicates are automatically removed.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left Column: Tabs & Content -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- Tab Navigation -->
+        <div class="card rounded-2xl overflow-hidden">
+          <div class="flex border-b border-zinc-800 overflow-x-auto">
+            <button onclick="switchTab('handle')" class="tab-btn active" data-tab="handle">
+              <span class="mr-2">👤</span> By Handle
+            </button>
+            <button onclick="switchTab('wallet')" class="tab-btn" data-tab="wallet">
+              <span class="mr-2">📋</span> By Wallet
+            </button>
+            <button onclick="switchTab('community')" class="tab-btn" data-tab="community">
+              <span class="mr-2">👥</span> By Community
+            </button>
+            <button onclick="switchTab('tickets')" class="tab-btn" data-tab="tickets">
+              <span class="mr-2">🎫</span> By Tickets
+            </button>
+          </div>
+
+          <!-- Tab 1: Add by Handle -->
+          <div id="tab-handle" class="tab-content p-6">
+            <h2 class="text-lg font-semibold mb-2">Add Individual by Arena Handle</h2>
+            <p class="text-xs text-zinc-500 mb-4">Look up an Arena user and add their wallet directly to your whitelist</p>
+
+            <div class="flex gap-3 mb-4">
+              <input
+                type="text"
+                id="handleInput"
+                placeholder="Enter Arena handle (e.g. NetWhizCrypto)..."
+                class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/50 transition-all"
+                onkeydown="if(event.key === 'Enter') lookupHandle()"
+              >
+              <button
+                onclick="lookupHandle()"
+                id="handleLookupBtn"
+                class="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 transition font-medium text-sm"
+              >
+                Look Up
+              </button>
+            </div>
+
+            <!-- Handle Result -->
+            <div id="handleResult" class="hidden">
+              <div id="handleResultContent" class="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50">
+                <!-- User card will be inserted here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Add by Wallet -->
+          <div id="tab-wallet" class="tab-content p-6 hidden">
+            <h2 class="text-lg font-semibold mb-2">Add Wallet Addresses Directly</h2>
+            <p class="text-xs text-zinc-500 mb-4">Paste wallet addresses (one per line) to add them to your whitelist</p>
+
+            <textarea
+              id="walletTextarea"
+              placeholder="Paste wallet addresses here, one per line:&#10;0x1234567890abcdef...&#10;0xabcdef1234567890..."
+              class="w-full h-40 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/50 transition-all font-mono resize-none"
+              oninput="validateWalletInput()"
+            ></textarea>
+
+            <div class="flex items-center justify-between mt-4">
+              <div id="walletValidation" class="text-sm text-zinc-500">
+                Enter wallet addresses above
+              </div>
+              <button
+                onclick="addManualWallets()"
+                id="addWalletsBtn"
+                class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+              >
+                Add to Whitelist
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab 3: Add by Community -->
+          <div id="tab-community" class="tab-content p-6 hidden">
+            <h2 class="text-lg font-semibold mb-2">Add by Community Badge</h2>
+            <p class="text-xs text-zinc-500 mb-4">Select a community to fetch all members with that badge</p>
+
+            <!-- Loading state for badges -->
+            <div id="badgesLoading" class="text-center py-8">
+              <svg class="animate-spin h-8 w-8 text-red-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p class="text-sm text-zinc-500">Loading communities...</p>
+            </div>
+
+            <!-- Community buttons container (populated dynamically) -->
+            <div id="communitiesContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-3 hidden">
+              <!-- Badges will be loaded dynamically from Arena API -->
+            </div>
+          </div>
+
+          <!-- Tab 4: Add by Ticket Holders -->
+          <div id="tab-tickets" class="tab-content p-6 hidden">
+            <h2 class="text-lg font-semibold mb-2">Add by Ticket Holders</h2>
+            <p class="text-xs text-zinc-500 mb-4">Search for an Arena user to fetch all their ticket holders</p>
+
+            <div class="flex gap-3 mb-4">
+              <input
+                type="text"
+                id="ticketSearchInput"
+                placeholder="Enter Arena handle (e.g. NetWhizCrypto)..."
+                class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-500/50 transition-all"
+                onkeydown="if(event.key === 'Enter') searchTicketUser()"
+              >
+              <button
+                onclick="searchTicketUser()"
+                id="ticketSearchBtn"
+                class="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 transition font-medium text-sm"
+              >
+                Fetch Holders
+              </button>
+            </div>
+
+            <!-- Ticket User Result -->
+            <div id="ticketUserResult" class="hidden mb-4">
+              <div id="ticketUserContent" class="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50">
+                <!-- User info will be inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="card rounded-2xl p-6 hidden">
+          <div class="text-center py-4">
+            <div class="flex items-center justify-center gap-3 mb-4">
+              <svg class="animate-spin h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span class="text-zinc-400" id="loadingText">Loading...</span>
+            </div>
+            <!-- Progress bar -->
+            <div class="w-full bg-zinc-800 rounded-full h-2 mb-2">
+              <div id="progressBar" class="progress-bar h-2 rounded-full" style="width: 0%"></div>
+            </div>
+            <p class="text-xs text-zinc-600" id="progressText"></p>
+          </div>
+        </div>
+
+        <!-- Holders Preview (when fetching tickets/community) -->
+        <div id="holdersPreview" class="card rounded-2xl p-6 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-zinc-400 tracking-wider uppercase flex items-center gap-2">
+              <span id="previewTicketName">Ticket Holders</span>
+              <span class="text-xs font-normal text-zinc-600" id="previewHolderCount"></span>
+            </h3>
+            <button onclick="closeHoldersPreview()" class="text-zinc-500 hover:text-white transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Ticket Filter (only for ticket holders) -->
+          <div id="ticketFilter" class="mb-4 p-3 rounded-xl bg-zinc-900/50 border border-zinc-800 hidden">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs text-zinc-500 mr-2">Min tickets:</span>
+              <button onclick="setMinTickets(0)" class="filter-btn active" data-min="0">All</button>
+              <button onclick="setMinTickets(1)" class="filter-btn" data-min="1">1+</button>
+              <button onclick="setMinTickets(2)" class="filter-btn" data-min="2">2+</button>
+              <button onclick="setMinTickets(5)" class="filter-btn" data-min="5">5+</button>
+              <button onclick="setMinTickets(10)" class="filter-btn" data-min="10">10+</button>
+              <button onclick="setMinTickets(20)" class="filter-btn" data-min="20">20+</button>
+              <span class="ml-auto text-xs text-zinc-500" id="filterCount"></span>
+            </div>
+          </div>
+
+          <!-- Selection Controls -->
+          <div class="flex items-center justify-between mb-3 pb-3 border-b border-zinc-800">
+            <div class="flex items-center gap-3">
+              <button onclick="selectAllHolders()" class="px-3 py-1.5 rounded-lg text-xs bg-zinc-800 hover:bg-zinc-700 transition">
+                Select All
+              </button>
+              <button onclick="deselectAllHolders()" class="px-3 py-1.5 rounded-lg text-xs bg-zinc-800 hover:bg-zinc-700 transition">
+                Deselect All
+              </button>
+              <span class="text-xs text-zinc-500" id="selectedCount">0 selected</span>
+            </div>
+            <button onclick="addSelectedHolders()" id="addSelectedBtn" class="px-4 py-1.5 rounded-lg text-xs bg-green-600 hover:bg-green-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              Add Selected to List
+            </button>
+          </div>
+
+          <div id="holdersPreviewList" class="space-y-1 max-h-80 overflow-y-auto">
+            <!-- Holders will be shown here -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Whitelist Summary & Export -->
+      <div class="space-y-6">
+
+        <!-- Whitelist Summary -->
+        <div class="card rounded-2xl p-6">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            </svg>
+            Your Whitelist
+          </h2>
+
+          <!-- Sources List -->
+          <div id="selectedLists" class="space-y-2 mb-4 max-h-64 overflow-y-auto">
+            <p class="text-zinc-600 text-sm text-center py-4" id="noListsMessage">No wallets added yet</p>
+          </div>
+
+          <!-- Stats -->
+          <div class="border-t border-zinc-800 pt-4 mt-4 space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-zinc-500">Total from sources:</span>
+              <span class="font-medium" id="totalWallets">0</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-zinc-500">Duplicates removed:</span>
+              <span class="font-medium text-orange-500" id="duplicatesRemoved">0</span>
+            </div>
+            <div class="flex justify-between text-sm pt-2 border-t border-zinc-800">
+              <span class="text-zinc-400 font-medium">UNIQUE WALLETS:</span>
+              <span class="font-bold text-green-500 text-lg" id="uniqueWallets">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="card rounded-2xl p-6">
+          <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Export
+          </h2>
+
+          <div class="space-y-3">
+            <button
+              onclick="exportCSV()"
+              id="exportBtn"
+              class="w-full px-4 py-3 rounded-xl bg-green-600/30 hover:bg-green-600/50 border border-green-600/50 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              Export to CSV
+            </button>
+
+            <button
+              onclick="exportCSVWithDetails()"
+              id="exportDetailsBtn"
+              class="w-full px-4 py-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-600/50 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              Export with Details
+            </button>
+
+            <button
+              onclick="copyWallets()"
+              id="copyBtn"
+              class="w-full px-4 py-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-600/50 transition font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled
+            >
+              Copy All Wallets
+            </button>
+
+            <button
+              onclick="clearAllLists()"
+              class="w-full px-4 py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition font-medium text-sm text-zinc-400"
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <!-- Help -->
+        <div class="card rounded-2xl p-6">
+          <h2 class="text-sm font-semibold mb-3 text-zinc-400">How to use</h2>
+          <ol class="text-xs text-zinc-500 space-y-2 list-decimal list-inside">
+            <li><strong>By Handle:</strong> Add individual Arena users</li>
+            <li><strong>By Wallet:</strong> Paste addresses directly</li>
+            <li><strong>By Community:</strong> Add all badge holders</li>
+            <li><strong>By Tickets:</strong> Add ticket holders with filters</li>
+            <li>Duplicates are automatically removed</li>
+            <li>Export unique wallets when ready</li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-zinc-800/50 mt-16 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 text-center text-xs text-zinc-600">
+      Arena Whitelist Builder - Built for the community
+    </div>
+  </footer>
+
+  <script>
+    // ============================================================
+    // STATE
+    // ============================================================
+    let selectedLists = [] // Array of { name, handle, profilePic, holders: [{wallet, shares, username, profilePic}], sourceType }
+    let previewHolders = [] // Temporary array for holders being previewed
+    let previewTicketInfo = null // { userId, handle, displayName, profilePic, sourceType }
+    let minTicketFilter = 0 // Minimum ticket filter (default: show all)
+    let isPreviewingTickets = false // Flag to know if we're previewing tickets (not community)
+
+    // Arena API
+    const ARENA_API = 'https://api.arena.social'
+    const ARENA_TOKEN = window.GRAFT_CONFIG?.ARENA_BEARER_TOKEN || ''
+
+    // Helper for authenticated fetch
+    function arenaFetch(url) {
+      return fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${ARENA_TOKEN}`
+        }
+      })
+    }
+
+    // ============================================================
+    // TAB SWITCHING
+    // ============================================================
+    function switchTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'))
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'))
+      // Show selected tab
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden')
+      // Mark tab as active
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active')
+      // Close any open preview
+      closeHoldersPreview()
+    }
+
+    // ============================================================
+    // TOAST NOTIFICATIONS
+    // ============================================================
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer')
+      const toast = document.createElement('div')
+      toast.className = `toast toast-${type}`
+      toast.innerHTML = message
+      container.appendChild(toast)
+      setTimeout(() => toast.remove(), 3000)
+    }
+
+    // ============================================================
+    // TAB 1: ADD BY HANDLE
+    // ============================================================
+    async function lookupHandle() {
+      const handle = document.getElementById('handleInput').value.trim()
+      if (!handle) {
+        showToast('Please enter a handle', 'warning')
+        return
+      }
+
+      const btn = document.getElementById('handleLookupBtn')
+      const resultDiv = document.getElementById('handleResult')
+      const resultContent = document.getElementById('handleResultContent')
+
+      btn.disabled = true
+      btn.textContent = 'Looking up...'
+      resultDiv.classList.add('hidden')
+
+      try {
+        const response = await arenaFetch(`${ARENA_API}/user/handle?handle=${encodeURIComponent(handle)}`)
+
+        if (!response.ok) {
+          showToast('User not found', 'warning')
+          return
+        }
+
+        const data = await response.json()
+        const user = data.user
+
+        if (!user) {
+          showToast('User not found', 'warning')
+          return
+        }
+
+        const wallet = user.address
+        if (!wallet || !wallet.startsWith('0x')) {
+          showToast('User has no wallet address', 'warning')
+          return
+        }
+
+        // Check if already in list
+        const alreadyAdded = selectedLists.some(l =>
+          l.holders.some(h => h.wallet.toLowerCase() === wallet.toLowerCase())
+        )
+
+        resultContent.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-full bg-zinc-800 bg-cover bg-center flex-shrink-0" style="background-image: url('${escapeHtml(user.profilePicture || '')}')"></div>
+              <div>
+                <div class="font-medium">${escapeHtml(user.userName || handle)}</div>
+                <div class="text-sm text-zinc-500">@${escapeHtml(handle)}</div>
+                <div class="font-mono text-xs text-zinc-600 mt-1">${wallet.slice(0,10)}...${wallet.slice(-8)}</div>
+              </div>
+            </div>
+            <div>
+              ${alreadyAdded
+                ? '<span class="text-green-500 text-sm">Already in list</span>'
+                : `<button onclick="addSingleUser('${escapeHtml(user.id)}', '${escapeHtml(handle)}', '${escapeHtml(user.userName || handle)}', '${escapeHtml(user.profilePicture || '')}', '${wallet}')" class="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 transition font-medium text-sm">
+                    Add to Whitelist
+                  </button>`
+              }
+            </div>
+          </div>
+        `
+
+        resultDiv.classList.remove('hidden')
+
+      } catch (error) {
+        console.error('Lookup error:', error)
+        showToast('Lookup failed: ' + error.message, 'error')
+      } finally {
+        btn.disabled = false
+        btn.textContent = 'Look Up'
+      }
+    }
+
+    function addSingleUser(userId, handle, displayName, profilePic, wallet) {
+      selectedLists.push({
+        userId: userId,
+        handle: handle,
+        displayName: displayName,
+        profilePic: profilePic,
+        sourceType: 'handle',
+        holders: [{
+          wallet: wallet,
+          shares: 0,
+          username: handle,
+          displayName: displayName,
+          profilePic: profilePic
+        }]
+      })
+
+      showToast(`Added @${handle} to whitelist`, 'success')
+      document.getElementById('handleInput').value = ''
+      document.getElementById('handleResult').classList.add('hidden')
+      updateUI()
+    }
+
+    // ============================================================
+    // TAB 2: ADD BY WALLET
+    // ============================================================
+    function validateWalletInput() {
+      const textarea = document.getElementById('walletTextarea')
+      const validation = document.getElementById('walletValidation')
+      const btn = document.getElementById('addWalletsBtn')
+
+      const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l)
+      const validWallets = lines.filter(l => /^0x[a-fA-F0-9]{40}$/.test(l))
+      const invalidCount = lines.length - validWallets.length
+
+      if (lines.length === 0) {
+        validation.textContent = 'Enter wallet addresses above'
+        validation.className = 'text-sm text-zinc-500'
+        btn.disabled = true
+      } else if (validWallets.length === 0) {
+        validation.textContent = 'No valid wallet addresses found'
+        validation.className = 'text-sm text-red-500'
+        btn.disabled = true
+      } else {
+        let text = `${validWallets.length} valid wallet${validWallets.length > 1 ? 's' : ''}`
+        if (invalidCount > 0) {
+          text += ` (${invalidCount} invalid skipped)`
+        }
+        validation.textContent = text
+        validation.className = 'text-sm text-green-500'
+        btn.disabled = false
+      }
+    }
+
+    function addManualWallets() {
+      const textarea = document.getElementById('walletTextarea')
+      const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l)
+      const validWallets = lines.filter(l => /^0x[a-fA-F0-9]{40}$/i.test(l))
+
+      if (validWallets.length === 0) {
+        showToast('No valid wallets to add', 'warning')
+        return
+      }
+
+      // Dedupe within this batch
+      const uniqueWallets = [...new Set(validWallets)]
+
+      selectedLists.push({
+        userId: `manual-${Date.now()}`,
+        handle: 'Manual Wallets',
+        displayName: 'Manual Wallets',
+        profilePic: '',
+        sourceType: 'manual',
+        holders: uniqueWallets.map(w => ({
+          wallet: w,
+          shares: 0,
+          username: '',
+          displayName: '',
+          profilePic: ''
+        }))
+      })
+
+      showToast(`Added ${uniqueWallets.length} wallets`, 'success')
+      textarea.value = ''
+      validateWalletInput()
+      updateUI()
+    }
+
+    // ============================================================
+    // TAB 3: ADD BY COMMUNITY
+    // ============================================================
+
+    // Helper: Parallel batch fetch with concurrency limit and retry logic
+    async function fetchWalletsInBatches(members, batchSize, onProgress) {
+      const results = []
+      let successCount = 0
+      let failCount = 0
+      let noWalletCount = 0
+      const failedMembers = []
+
+      // Helper: Fetch single member with retry
+      async function fetchMemberWallet(member, retries = 3) {
+        for (let attempt = 0; attempt < retries; attempt++) {
+          try {
+            const response = await arenaFetch(`${ARENA_API}/user/handle?handle=${member.handle}`)
+
+            if (!response.ok) {
+              if (attempt < retries - 1) {
+                await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+                continue
+              }
+              return { success: false, reason: 'api_error', member }
+            }
+
+            const data = await response.json()
+            const wallet = data.user?.dynamicAddress || data.user?.address
+
+            if (wallet && wallet.startsWith('0x')) {
+              return {
+                success: true,
+                data: {
+                  wallet: wallet,
+                  shares: 0,
+                  username: member.handle,
+                  displayName: member.userName || member.handle,
+                  profilePic: member.profilePicture || '',
+                  selected: true,
+                  isCommunity: true
+                }
+              }
+            }
+            return { success: false, reason: 'no_wallet' }
+          } catch (e) {
+            if (attempt < retries - 1) {
+              await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+              continue
+            }
+            return { success: false, reason: 'exception', error: e.message, member }
+          }
+        }
+      }
+
+      // First pass: regular batching
+      for (let i = 0; i < members.length; i += batchSize) {
+        const batch = members.slice(i, i + batchSize)
+
+        const batchPromises = batch.map((member, idx) =>
+          fetchMemberWallet(member).then(result => ({ result, member: batch[idx] }))
+        )
+        const batchResults = await Promise.allSettled(batchPromises)
+
+        for (const promiseResult of batchResults) {
+          if (promiseResult.status === 'fulfilled') {
+            const { result, member } = promiseResult.value
+            if (result.success) {
+              results.push(result.data)
+              successCount++
+            } else if (result.reason === 'no_wallet') {
+              noWalletCount++
+            } else {
+              failCount++
+              failedMembers.push(member)
+            }
+          } else {
+            failCount++
+          }
+        }
+
+        if (onProgress) {
+          onProgress(Math.min(i + batchSize, members.length), members.length)
+        }
+
+        if (i + batchSize < members.length) {
+          await new Promise(r => setTimeout(r, 1000))
+        }
+      }
+
+      console.log(`First pass: ${successCount} success, ${noWalletCount} no wallet, ${failCount} failed`)
+
+      // Second pass: retry failed members one by one
+      if (failedMembers.length > 0) {
+        console.log(`Retrying ${failedMembers.length} failed requests...`)
+        let retriedSuccess = 0
+
+        for (const member of failedMembers) {
+          await new Promise(r => setTimeout(r, 1500)) // Extra delay for retries
+          const result = await fetchMemberWallet(member, 2) // 2 more attempts
+
+          if (result.success) {
+            results.push(result.data)
+            retriedSuccess++
+          }
+        }
+
+        console.log(`Retry complete: ${retriedSuccess} recovered`)
+        successCount += retriedSuccess
+        failCount -= retriedSuccess
+      }
+
+      console.log(`Final: ${successCount} success, ${noWalletCount} no wallet, ${failCount} failed`)
+      if (failCount > 0) {
+        console.warn(`⚠️ ${failCount} requests permanently failed`)
+      }
+      return results
+    }
+
+    async function fetchCommunity(badgeType, communityName) {
+      const loadingState = document.getElementById('loadingState')
+      const loadingText = document.getElementById('loadingText')
+      const progressBar = document.getElementById('progressBar')
+      const progressText = document.getElementById('progressText')
+
+      loadingState.classList.remove('hidden')
+      loadingText.textContent = `Fetching ${communityName} members...`
+      progressBar.style.width = '0%'
+      progressText.textContent = 'Getting member list...'
+
+      try {
+        // Step 1: Fetch all members with this badge (paginated)
+        const allMembers = []
+        let page = 1
+        let hasMore = true
+        let retryCount = 0
+        const maxRetries = 3
+
+        while (hasMore) {
+          try {
+            const response = await arenaFetch(
+              `${ARENA_API}/user/badges?badgeType=${badgeType}&page=${page}&pageSize=50`
+            )
+
+            if (!response.ok) {
+              if (retryCount < maxRetries) {
+                retryCount++
+                progressText.textContent = `Retrying page ${page}... (${retryCount}/${maxRetries})`
+                await new Promise(r => setTimeout(r, 1000 * retryCount))
+                continue
+              }
+              throw new Error(`Failed to fetch page ${page}`)
+            }
+
+            retryCount = 0
+            const data = await response.json()
+            const members = data.usersWithBadges || []
+
+            allMembers.push(...members)
+            progressText.textContent = `Found ${allMembers.length} members...`
+
+            if (members.length < 50) {
+              hasMore = false
+            } else {
+              page++
+              await new Promise(r => setTimeout(r, 200))
+            }
+          } catch (pageError) {
+            if (allMembers.length > 0) {
+              progressText.textContent = `Proceeding with ${allMembers.length} members found...`
+              hasMore = false
+            } else {
+              throw pageError
+            }
+          }
+        }
+
+        if (allMembers.length === 0) {
+          showToast(`No members found for ${communityName}`, 'warning')
+          loadingState.classList.add('hidden')
+          return
+        }
+
+        // Step 2: Fetch wallets in parallel batches
+        loadingText.textContent = `Fetching ${allMembers.length} wallets...`
+        progressBar.style.width = '0%'
+
+        const BATCH_SIZE = 2 // Fetch 2 at a time in parallel (maximum reliability)
+
+        const membersWithWallets = await fetchWalletsInBatches(
+          allMembers,
+          BATCH_SIZE,
+          (processed, total) => {
+            const progress = Math.round((processed / total) * 100)
+            progressBar.style.width = `${progress}%`
+            progressText.textContent = `Fetching wallets: ${processed}/${total}`
+          }
+        )
+
+        loadingState.classList.add('hidden')
+
+        if (membersWithWallets.length === 0) {
+          showToast(`Could not fetch any wallets for ${communityName}`, 'error')
+          return
+        }
+
+        // Store for selection
+        previewHolders = membersWithWallets
+        isPreviewingTickets = false
+        previewTicketInfo = {
+          userId: `community-${badgeType}`,
+          handle: communityName,
+          displayName: communityName,
+          profilePic: `https://arena.social/assets/badges/badge-type-${badgeType}.png`,
+          sourceType: 'community'
+        }
+
+        showHoldersPreview(communityName, membersWithWallets, true)
+        showToast(`Found ${membersWithWallets.length} ${communityName} members`, 'info')
+
+      } catch (error) {
+        console.error('Fetch community error:', error)
+        showToast('Failed to fetch community: ' + error.message, 'error')
+        loadingState.classList.add('hidden')
+      }
+    }
+
+    // ============================================================
+    // TAB 4: ADD BY TICKET HOLDERS
+    // ============================================================
+    async function searchTicketUser() {
+      const query = document.getElementById('ticketSearchInput').value.trim()
+      if (!query) {
+        showToast('Please enter a username', 'warning')
+        return
+      }
+
+      const searchBtn = document.getElementById('ticketSearchBtn')
+      const loadingState = document.getElementById('loadingState')
+      const loadingText = document.getElementById('loadingText')
+      const progressBar = document.getElementById('progressBar')
+      const progressText = document.getElementById('progressText')
+
+      searchBtn.disabled = true
+      loadingState.classList.remove('hidden')
+      loadingText.textContent = 'Looking up user...'
+      progressBar.style.width = '0%'
+      progressText.textContent = ''
+
+      try {
+        // Get user by handle
+        const response = await arenaFetch(`${ARENA_API}/user/handle?handle=${encodeURIComponent(query)}`)
+
+        if (!response.ok) {
+          loadingState.classList.add('hidden')
+          showToast('User not found', 'warning')
+          return
+        }
+
+        const data = await response.json()
+        const user = data.user
+
+        if (!user) {
+          loadingState.classList.add('hidden')
+          showToast('User not found', 'warning')
+          return
+        }
+
+        const userId = user.id
+        const handle = user.handle || query
+        const displayName = user.userName || handle
+        const profilePic = user.profilePicture || ''
+
+        // Fetch holders
+        await fetchHolders(userId, handle, displayName, profilePic)
+
+      } catch (error) {
+        console.error('Search error:', error)
+        showToast('Search failed: ' + error.message, 'error')
+        loadingState.classList.add('hidden')
+      } finally {
+        searchBtn.disabled = false
+      }
+    }
+
+    async function fetchHolders(userId, handle, displayName, profilePic) {
+      const loadingState = document.getElementById('loadingState')
+      const loadingText = document.getElementById('loadingText')
+      const progressBar = document.getElementById('progressBar')
+      const progressText = document.getElementById('progressText')
+
+      loadingState.classList.remove('hidden')
+      loadingText.textContent = `Fetching holders for @${handle}...`
+      progressBar.style.width = '0%'
+      progressText.textContent = 'Getting holder list...'
+
+      try {
+        // Step 1: Fetch all holders (paginated)
+        const allHolders = []
+        let page = 1
+        let hasMore = true
+
+        while (hasMore) {
+          const response = await arenaFetch(
+            `${ARENA_API}/shares/holders?userId=${userId}&page=${page}&pageSize=50`
+          )
+
+          if (!response.ok) throw new Error('Failed to fetch holders')
+
+          const data = await response.json()
+          const holders = data.holders || []
+
+          allHolders.push(...holders)
+          progressText.textContent = `Found ${allHolders.length} holders...`
+
+          if (holders.length < 50) {
+            hasMore = false
+          } else {
+            page++
+          }
+        }
+
+        if (allHolders.length === 0) {
+          showToast(`No holders found for @${handle}`, 'warning')
+          loadingState.classList.add('hidden')
+          return
+        }
+
+        // Step 2: Fetch wallet addresses for each holder
+        loadingText.textContent = `Fetching wallet addresses...`
+        const holdersWithWallets = []
+        let processed = 0
+
+        for (const holder of allHolders) {
+          const holderHandle = holder.traderUser?.handle || holder.traderUser?.twitterHandle
+          const holderName = holder.traderUser?.userName || holder.traderUser?.twitterName || holderHandle
+          const holderPic = holder.traderUser?.profilePicture || holder.traderUser?.twitterPicture || ''
+          const shares = holder.amount || holder.balance || holder.shares || 1
+
+          if (!holderHandle) {
+            processed++
+            continue
+          }
+
+          try {
+            const userResponse = await arenaFetch(`${ARENA_API}/user/handle?handle=${holderHandle}`)
+
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              const wallet = userData.user?.dynamicAddress || userData.user?.address
+
+              if (wallet && wallet.startsWith('0x')) {
+                holdersWithWallets.push({
+                  wallet: wallet,
+                  shares: shares,
+                  username: holderHandle,
+                  displayName: holderName,
+                  profilePic: holderPic,
+                  selected: true,
+                  isCommunity: false
+                })
+              }
+            }
+          } catch (e) {
+            // Skip failed lookups
+          }
+
+          processed++
+          const progress = Math.round((processed / allHolders.length) * 100)
+          progressBar.style.width = `${progress}%`
+          progressText.textContent = `Processing ${processed}/${allHolders.length} holders...`
+        }
+
+        loadingState.classList.add('hidden')
+
+        if (holdersWithWallets.length === 0) {
+          showToast(`Could not fetch any wallets for @${handle}`, 'error')
+          return
+        }
+
+        // Store for selection
+        previewHolders = holdersWithWallets
+        isPreviewingTickets = true
+        minTicketFilter = 0 // Reset filter
+        previewTicketInfo = {
+          userId,
+          handle,
+          displayName,
+          profilePic,
+          sourceType: 'tickets'
+        }
+
+        showHoldersPreview(handle, holdersWithWallets, false)
+        showToast(`Found ${holdersWithWallets.length} holders`, 'info')
+
+      } catch (error) {
+        console.error('Fetch holders error:', error)
+        showToast('Failed to fetch holders: ' + error.message, 'error')
+        loadingState.classList.add('hidden')
+      }
+    }
+
+    // ============================================================
+    // TICKET FILTER
+    // ============================================================
+    function setMinTickets(min) {
+      minTicketFilter = min
+
+      // Update filter buttons
+      document.querySelectorAll('#ticketFilter .filter-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.min) === min)
+      })
+
+      // Re-render with filter
+      renderHoldersList()
+      updateSelectionCount()
+    }
+
+    // ============================================================
+    // HOLDERS PREVIEW
+    // ============================================================
+    function showHoldersPreview(ticketName, holders, isCommunity = false) {
+      const container = document.getElementById('holdersPreview')
+      const nameEl = document.getElementById('previewTicketName')
+      const countEl = document.getElementById('previewHolderCount')
+      const filterDiv = document.getElementById('ticketFilter')
+
+      nameEl.textContent = isCommunity ? `${ticketName} Members` : `@${ticketName} Holders`
+      countEl.textContent = `(${holders.length} wallets)`
+
+      // Show/hide ticket filter
+      if (isCommunity) {
+        filterDiv.classList.add('hidden')
+      } else {
+        filterDiv.classList.remove('hidden')
+        // Reset filter buttons
+        document.querySelectorAll('#ticketFilter .filter-btn').forEach(btn => {
+          btn.classList.toggle('active', parseInt(btn.dataset.min) === 0)
+        })
+      }
+
+      renderHoldersList()
+      updateSelectionCount()
+      container.classList.remove('hidden')
+    }
+
+    function renderHoldersList() {
+      const list = document.getElementById('holdersPreviewList')
+
+      // Filter by minimum tickets (only for ticket holders)
+      let filtered = previewHolders
+      if (isPreviewingTickets && minTicketFilter > 0) {
+        filtered = previewHolders.filter(h => h.shares >= minTicketFilter)
+      }
+
+      // Update filter count
+      if (isPreviewingTickets) {
+        const filterCount = document.getElementById('filterCount')
+        filterCount.textContent = `${filtered.length} of ${previewHolders.length} match`
+      }
+
+      // Sort by shares (highest first)
+      const sorted = [...filtered].sort((a, b) => b.shares - a.shares)
+
+      list.innerHTML = sorted.map((h, idx) => {
+        // Find original index for toggle
+        const originalIndex = previewHolders.findIndex(ph => ph.wallet === h.wallet)
+
+        return `
+          <div class="holder-row flex items-center gap-3 p-2 rounded-lg transition cursor-pointer ${h.selected ? 'bg-green-900/20 border border-green-800/30' : 'border border-transparent'}" onclick="toggleHolder(${originalIndex})">
+            <input type="checkbox" ${h.selected ? 'checked' : ''} class="w-4 h-4 rounded accent-green-500 cursor-pointer" onclick="event.stopPropagation(); toggleHolder(${originalIndex})">
+            <div class="w-8 h-8 rounded-full bg-zinc-800 bg-cover bg-center flex-shrink-0" style="background-image: url('${escapeHtml(h.profilePic)}')"></div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium truncate">${h.username ? '@' + escapeHtml(h.username) : 'Unknown'}</div>
+              <div class="font-mono text-xs text-zinc-500 truncate">${h.wallet.slice(0,6)}...${h.wallet.slice(-4)}</div>
+            </div>
+            ${h.isCommunity ? '' : `
+            <div class="flex-shrink-0 text-right">
+              <div class="text-sm font-bold text-yellow-500">${h.shares}</div>
+              <div class="text-xs text-zinc-600">ticket${h.shares > 1 ? 's' : ''}</div>
+            </div>
+            `}
+          </div>
+        `
+      }).join('')
+
+      if (sorted.length === 0) {
+        list.innerHTML = '<p class="text-center text-zinc-500 py-4">No holders match the filter</p>'
+      }
+    }
+
+    function toggleHolder(index) {
+      previewHolders[index].selected = !previewHolders[index].selected
+      renderHoldersList()
+      updateSelectionCount()
+    }
+
+    function selectAllHolders() {
+      // Only select visible (filtered) holders
+      let filtered = previewHolders
+      if (isPreviewingTickets && minTicketFilter > 0) {
+        filtered = previewHolders.filter(h => h.shares >= minTicketFilter)
+      }
+      filtered.forEach(h => h.selected = true)
+      renderHoldersList()
+      updateSelectionCount()
+    }
+
+    function deselectAllHolders() {
+      previewHolders.forEach(h => h.selected = false)
+      renderHoldersList()
+      updateSelectionCount()
+    }
+
+    function updateSelectionCount() {
+      // Count only filtered + selected
+      let filtered = previewHolders
+      if (isPreviewingTickets && minTicketFilter > 0) {
+        filtered = previewHolders.filter(h => h.shares >= minTicketFilter)
+      }
+      const count = filtered.filter(h => h.selected).length
+      document.getElementById('selectedCount').textContent = `${count} selected`
+      document.getElementById('addSelectedBtn').disabled = count === 0
+    }
+
+    function addSelectedHolders() {
+      if (!previewTicketInfo) return
+
+      // Only add filtered + selected holders
+      let filtered = previewHolders
+      if (isPreviewingTickets && minTicketFilter > 0) {
+        filtered = previewHolders.filter(h => h.shares >= minTicketFilter)
+      }
+
+      const selectedHolders = filtered.filter(h => h.selected).map(h => ({
+        wallet: h.wallet,
+        shares: h.shares,
+        username: h.username,
+        displayName: h.displayName,
+        profilePic: h.profilePic
+      }))
+
+      if (selectedHolders.length === 0) {
+        showToast('No holders selected', 'warning')
+        return
+      }
+
+      selectedLists.push({
+        userId: previewTicketInfo.userId,
+        handle: previewTicketInfo.handle,
+        displayName: previewTicketInfo.displayName,
+        profilePic: previewTicketInfo.profilePic,
+        sourceType: previewTicketInfo.sourceType,
+        holders: selectedHolders
+      })
+
+      showToast(`Added ${selectedHolders.length} wallets from ${previewTicketInfo.handle}`, 'success')
+
+      // Clear preview
+      previewHolders = []
+      previewTicketInfo = null
+      closeHoldersPreview()
+
+      updateUI()
+    }
+
+    function closeHoldersPreview() {
+      document.getElementById('holdersPreview').classList.add('hidden')
+    }
+
+    // ============================================================
+    // UI UPDATES
+    // ============================================================
+    function updateUI() {
+      updateSelectedLists()
+      updateStats()
+      updateExportButtons()
+    }
+
+    function updateSelectedLists() {
+      const container = document.getElementById('selectedLists')
+
+      if (selectedLists.length === 0) {
+        container.innerHTML = '<p class="text-zinc-600 text-sm text-center py-4">No wallets added yet</p>'
+        return
+      }
+
+      container.innerHTML = selectedLists.map((list, index) => {
+        const sourceClass = `source-${list.sourceType || 'manual'}`
+        const sourceLabel = {
+          'community': 'Community',
+          'tickets': 'Tickets',
+          'handle': 'Handle',
+          'manual': 'Manual'
+        }[list.sourceType] || 'Manual'
+
+        return `
+          <div class="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/50">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-zinc-800 bg-cover bg-center flex-shrink-0" style="background-image: url('${escapeHtml(list.profilePic)}')"></div>
+              <div>
+                <div class="font-medium text-sm flex items-center gap-2">
+                  ${list.handle === 'Manual Wallets' ? 'Manual Wallets' : '@' + escapeHtml(list.handle)}
+                  <span class="source-badge ${sourceClass}">${sourceLabel}</span>
+                </div>
+                <div class="text-xs text-zinc-500">${list.holders.length} wallet${list.holders.length > 1 ? 's' : ''}</div>
+              </div>
+            </div>
+            <button onclick="removeList(${index})" class="text-zinc-500 hover:text-red-500 transition p-1" title="Remove">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        `
+      }).join('')
+    }
+
+    function updateStats() {
+      const totalWallets = selectedLists.reduce((sum, list) => sum + list.holders.length, 0)
+      const uniqueWallets = getUniqueWallets().length
+      const duplicates = totalWallets - uniqueWallets
+
+      document.getElementById('totalWallets').textContent = totalWallets
+      document.getElementById('duplicatesRemoved').textContent = duplicates > 0 ? `-${duplicates}` : '0'
+      document.getElementById('uniqueWallets').textContent = uniqueWallets
+    }
+
+    function updateExportButtons() {
+      const hasWallets = selectedLists.length > 0
+      document.getElementById('exportBtn').disabled = !hasWallets
+      document.getElementById('exportDetailsBtn').disabled = !hasWallets
+      document.getElementById('copyBtn').disabled = !hasWallets
+    }
+
+    function removeList(index) {
+      selectedLists.splice(index, 1)
+      updateUI()
+      showToast('Source removed', 'info')
+    }
+
+    function clearAllLists() {
+      if (selectedLists.length === 0) return
+      if (!confirm('Clear all sources?')) return
+
+      selectedLists = []
+      updateUI()
+      closeHoldersPreview()
+      showToast('All sources cleared', 'info')
+    }
+
+    // ============================================================
+    // EXPORT FUNCTIONS
+    // ============================================================
+    function getUniqueWallets() {
+      const allWallets = selectedLists.flatMap(list => list.holders.map(h => h.wallet))
+      return [...new Set(allWallets)]
+    }
+
+    function getAllHoldersWithDetails() {
+      const walletMap = new Map()
+
+      selectedLists.forEach(list => {
+        list.holders.forEach(h => {
+          const existing = walletMap.get(h.wallet)
+          if (!existing || h.shares > existing.shares) {
+            walletMap.set(h.wallet, {
+              wallet: h.wallet,
+              shares: h.shares,
+              username: h.username,
+              displayName: h.displayName,
+              profilePic: h.profilePic,
+              source: list.handle
+            })
+          }
+        })
+      })
+
+      return Array.from(walletMap.values())
+    }
+
+    function exportCSV() {
+      const uniqueWallets = getUniqueWallets()
+      if (uniqueWallets.length === 0) {
+        showToast('No wallets to export', 'warning')
+        return
+      }
+
+      const csvContent = uniqueWallets.join('\n')
+      downloadCSV(csvContent, `whitelist_${new Date().toISOString().split('T')[0]}.csv`)
+      showToast(`Exported ${uniqueWallets.length} unique wallets`, 'success')
+    }
+
+    function exportCSVWithDetails() {
+      const holders = getAllHoldersWithDetails()
+      if (holders.length === 0) {
+        showToast('No wallets to export', 'warning')
+        return
+      }
+
+      const header = 'wallet_address,shares,username,source'
+      const rows = holders.map(h =>
+        `${h.wallet},${h.shares},${h.username || ''},${h.source || ''}`
+      )
+      const csvContent = header + '\n' + rows.join('\n')
+
+      downloadCSV(csvContent, `whitelist_detailed_${new Date().toISOString().split('T')[0]}.csv`)
+      showToast(`Exported ${holders.length} wallets with details`, 'success')
+    }
+
+    function downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+
+      link.setAttribute('href', url)
+      link.setAttribute('download', filename)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+
+    function copyWallets() {
+      const uniqueWallets = getUniqueWallets()
+      if (uniqueWallets.length === 0) {
+        showToast('No wallets to copy', 'warning')
+        return
+      }
+
+      navigator.clipboard.writeText(uniqueWallets.join('\n')).then(() => {
+        showToast(`Copied ${uniqueWallets.length} wallets to clipboard`, 'success')
+      }).catch(err => {
+        showToast('Failed to copy: ' + err.message, 'error')
+      })
+    }
+
+    // ============================================================
+    // UTILITY
+    // ============================================================
+    function escapeHtml(text) {
+      if (!text) return ''
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
+    }
+
+    // ============================================================
+    // DYNAMIC BADGE LOADING
+    // ============================================================
+    async function loadCommunityBadges() {
+      const container = document.getElementById('communitiesContainer')
+      const loading = document.getElementById('badgesLoading')
+
+      try {
+        const response = await arenaFetch(`${ARENA_API}/badges/badge-types`)
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch badges')
+        }
+
+        const badges = await response.json()
+
+        // Sort badges by order
+        badges.sort((a, b) => a.order - b.order)
+
+        // Build HTML for all badges
+        let html = ''
+        for (const badge of badges) {
+          const badgeId = String(badge.id) // Convert to string for large numbers
+          const name = escapeHtml(badge.name)
+          const imageUrl = badge.imageURL.startsWith('http')
+            ? badge.imageURL
+            : `https://arena.social${badge.imageURL}`
+
+          html += `
+            <button onclick="fetchCommunity('${badgeId}', '${name}')" class="community-btn flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-purple-500/50 transition text-left">
+              <img src="${imageUrl}" class="w-8 h-8 rounded-lg" onerror="this.style.display='none'">
+              <div>
+                <div class="font-medium text-sm">${name}</div>
+                <div class="text-xs text-zinc-500">${name} community</div>
+              </div>
+            </button>
+          `
+        }
+
+        container.innerHTML = html
+        loading.classList.add('hidden')
+        container.classList.remove('hidden')
+
+        console.log(`Loaded ${badges.length} community badges`)
+
+      } catch (error) {
+        console.error('Failed to load badges:', error)
+        loading.innerHTML = `
+          <p class="text-sm text-red-500">Failed to load communities</p>
+          <button onclick="loadCommunityBadges()" class="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm">
+            Retry
+          </button>
+        `
+      }
+    }
+
+    // Load badges when page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCommunityBadges()
+    })
+  </script>
+
+</body>
+</html>
