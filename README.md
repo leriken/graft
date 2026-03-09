@@ -102,8 +102,8 @@ The Whitelist Tool is only the **first layer of the Graft ecosystem**.
 
 Planned expansions include:
 
-- **The Glitch** – an interactive system designed to increase on-chain activity and engagement
-- **Points System & Leaderboard** – encouraging participation and community interaction
+- **The Glitch** – an interactive system designed to increase on-chain activity and engagement (https://graft.bio/pages/glitch/)
+- **Points System & Leaderboard** – encouraging participation and community interaction (https://graft.bio/pages/leaderboard/)
 - Additional integrations for more community data sources
 - Potential on-chain whitelist verification
 
