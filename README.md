@@ -2,6 +2,7 @@
 
 ![Graft Whitelist Tool](./preview.png)
 
+Built for **Avalanche Build Games – Stage 2** 🔺
 
 # Graft Whitelist Tool
 
@@ -49,6 +50,18 @@ The goal is to make whitelist generation **faster, cleaner, and more community-d
 You can test the live MVP here:
 
 https://graft.bio/pages/whitelist/
+
+---
+
+## Quick Start
+
+1. Open the live tool
+2. Enter an Arena username or fetch community members
+3. Preview the wallets retrieved
+4. Select the wallets you want to include
+5. Export the whitelist as CSV
+
+The process takes less than a minute and generates a clean wallet list ready for token launches.
 
 ---
 
