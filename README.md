@@ -1,5 +1,10 @@
 # Graft Whitelist Tool
 
+![Graft Whitelist Tool](./preview.png)
+
+
+# Graft Whitelist Tool
+
 ## Overview
 
 The **Graft Whitelist Tool** is a lightweight web application designed to help projects create high-quality wallet whitelists quickly and transparently.
